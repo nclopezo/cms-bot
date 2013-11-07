@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 from optparse import OptionParser
 from os import listdir
+from os import path
 
 def add_header(outfile,release_name):
 	outfile.write('<!DOCTYPE html>\n')
@@ -43,9 +44,10 @@ def add_summary_table(outfile,release_name,base_dir):
 	outfile.write('\t<table class="table table-bordered span6" >\n')
 	outfile.write('\t<tbody>\n')
 	for wf in listdir(base_dir):
-        	print 'Adding %s' % wf
-		add_workflow(outfile,wf,base_dir)
-		print
+        	if path.isdir('%s/%s/'% (base_dir,wf) ):
+			print 'Adding %s' % wf
+			add_workflow(outfile,wf,base_dir)
+			print
 	outfile.write('\t</tbody>\n')
 	outfile.write('\t</table>\n')
 
@@ -53,21 +55,23 @@ def add_workflow(outfile,workflow_name,base_dir):
 	outfile.write('\t\t<tr>\n')
         outfile.write('\t\t<td colspan="2"> <div class="text-info"> <h4> %s </h4> </div> </td> \n' %workflow_name)
 	for step in listdir('%s/%s' % (base_dir,workflow_name)):
-		print step
-		outfile.write('\t\t\t<tr>\n')
-		outfile.write('\t\t\t<td colspan="2"> %s </td>\n'% step)
-		add_image(base_dir,workflow_name,step)
-		outfile.write('\t\t\t</tr>\n')
-               	print
+		if path.isdir('%s/%s/%s'% (base_dir,workflow_name,step) ):
+			print step
+			outfile.write('\t\t\t<tr>\n')
+			outfile.write('\t\t\t<td colspan="2"> %s </td>\n'% step)
+			add_image(base_dir,workflow_name,step)
+			outfile.write('\t\t\t</tr>\n')
+               		print
 	outfile.write('\t\t</tr>\n')
 
 def add_image(base_dir,workflow_name,step):
 	outfile.write('\t\t\t\t<tr>\n')
 	for img in listdir('%s/%s/%s' % (base_dir,workflow_name,step)):
-		print img
-		img_url='%s/%s/%s/%s' % (base_url,workflow_name,step,img)
-		outfile.write('\t\t\t\t<td><a href="%s">' %img_url)
-		outfile.write('<img src="%s" alt="%s" height="350" width="350" ></a></td>\n' % (img_url,img_url))
+		if (img == 'average_cpu_histo.png' or img == 'maximum_rss_histo.png'):
+			print img
+			img_url='%s/%s/%s/%s' % (base_url,workflow_name,step,img)
+			outfile.write('\t\t\t\t<td><a href="%s">' %img_url)
+			outfile.write('<img src="%s" alt="%s" height="350" width="350" ></a></td>\n' % (img_url,img_url))
 	outfile.write('\t\t\t\t</tr>\n')
 
 def end_body(outfile):
