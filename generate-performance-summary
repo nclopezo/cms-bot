@@ -44,7 +44,7 @@ def add_summary_table(outfile,release_name,base_dir):
 	outfile.write('\t<table class="table table-bordered span6" >\n')
 	outfile.write('\t<tbody>\n')
 	for wf in listdir(base_dir):
-        	if path.isdir('%s/%s/'% (base_dir,wf) ):
+        	if path.isdir('%s/%s/'% (base_dir,wf) ) and not 'bootstrap' in wf:
 			print 'Adding %s' % wf
 			add_workflow(outfile,wf,base_dir)
 			print
