@@ -18,43 +18,41 @@ def start_body(outfile):
 	outfile.write('<body>\n')
 	add_line_breaks(outfile,2)
 
-def add_title_table(outfile,release_name):
-	outfile.write('<div center="row">\n')
-        outfile.write('<div class="span4">\n')
-        outfile.write('</div>\n')
-        outfile.write('<div class="span6">\n')
-	outfile.write('\t<table class="table table-stripped span6 text-center"  >\n')
+def add_title_to_table(outfile,release_name):
         outfile.write('\t\t<thead>\n')
         outfile.write('\t\t<tr>\n')
         outfile.write('\t\t<td ><p class="text-center"><h2>Last Release Evaluated: %s </h2></p></td>\n' %release_name)
         outfile.write('\t\t<td ><p class="text-center"><img src="http://cms.web.cern.ch/sites/cms.web.cern.ch/files/cms-logo-with-text_0_0.png" class="img-rounded"></p></td>\n')
         outfile.write('\t\t</tr>\n')
         outfile.write('\t\t</thead>\n')
-        outfile.write('\t</table>\n')
-        outfile.write('\t</div>\n')
-	outfile.write('</div>\n')
 
 def add_line_breaks(outfile,quantity):
 	for i in range(0,quantity):
 		outfile.write('<br>\n')
 
 def add_summary_table(outfile,release_name,base_dir):
-	outfile.write('<div class="span4">\n')
-        outfile.write('</div>\n')
-	outfile.write('\t<table class="table table-bordered span6" >\n')
+	outfile.write('<div class="row">\n')
+	outfile.write('\t<table class="table span6 offset3" >\n')
+	add_title_to_table(outfile,release_name)
 	outfile.write('\t<tbody>\n')
-	for wf in listdir(base_dir):
+	for wf in sorted(listdir(base_dir)):
         	if path.isdir('%s/%s/'% (base_dir,wf) ) and not 'bootstrap' in wf:
 			print 'Adding %s' % wf
 			add_workflow(outfile,wf,base_dir)
 			print
 	outfile.write('\t</tbody>\n')
 	outfile.write('\t</table>\n')
+	outfile.write('</div>\n')
 
 def add_workflow(outfile,workflow_name,base_dir):
 	outfile.write('\t\t<tr>\n')
+	outfile.write('\t\t\t<td colspan="2">\n')
+	outfile.write('\t\t\t<br>\n')
+	outfile.write('\t\t\t</td>\n')
+	outfile.write('\t\t</tr>\n')
+	outfile.write('\t\t<tr class="info">\n')
         outfile.write('\t\t<td colspan="2"> <div class="text-info"> <h4> %s </h4> </div> </td> \n' %workflow_name)
-	for step in listdir('%s/%s' % (base_dir,workflow_name)):
+	for step in sorted(listdir('%s/%s' % (base_dir,workflow_name))):
 		if path.isdir('%s/%s/%s'% (base_dir,workflow_name,step) ):
 			print step
 			outfile.write('\t\t\t<tr>\n')
@@ -102,8 +100,6 @@ print 'I will generate the results page for %s \n' % release
 outfile = open('performanceSummaryOut.html', 'w')
 add_header(outfile,release)
 start_body(outfile)
-add_title_table(outfile,release)
-add_line_breaks(outfile,8)
 add_summary_table(outfile,release,base_dir)
 end_body(outfile)
 outfile.close()
