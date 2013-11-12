@@ -69,7 +69,7 @@ def add_image(base_dir,workflow_name,step):
 			print img
 			img_url='%s/%s/%s/%s' % (base_url,workflow_name,step,img)
 			outfile.write('\t\t\t\t<td><a href="%s">' %img_url)
-			outfile.write('<img src="%s" alt="%s" height="350" width="350" ></a></td>\n' % (img_url,img_url))
+			outfile.write('<img src="%s" alt="%s" height="400" width="400" ></a></td>\n' % (img_url,img_url))
 	outfile.write('\t\t\t\t</tr>\n')
 
 def end_body(outfile):
