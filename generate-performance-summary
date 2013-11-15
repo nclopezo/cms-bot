@@ -2,6 +2,7 @@
 from optparse import OptionParser
 from os import listdir
 from os import path
+import re
 
 def add_header(outfile,release_name):
 	outfile.write('<!DOCTYPE html>\n')
@@ -30,12 +31,21 @@ def add_line_breaks(outfile,quantity):
 	for i in range(0,quantity):
 		outfile.write('<br>\n')
 
+def get_wfs_ordered(base_dir):
+	workflows={}
+	check=re.compile("^[0-9]+.")
+	for wf in listdir(base_dir):
+		if check.match(wf):
+			wf_number = float(re.sub('_.*$', '', wf))
+			workflows[wf_number]=wf
+	return [ workflows[wf_number] for wf_number in sorted(workflows.keys()) ]
+
 def add_summary_table(outfile,release_name,base_dir):
 	outfile.write('<div class="row">\n')
 	outfile.write('\t<table class="table span6 offset3" >\n')
 	add_title_to_table(outfile,release_name)
 	outfile.write('\t<tbody>\n')
-	for wf in sorted(listdir(base_dir)):
+	for wf in get_wfs_ordered(base_dir):
         	if path.isdir('%s/%s/'% (base_dir,wf) ) and not 'bootstrap' in wf:
 			print 'Adding %s' % wf
 			add_workflow(outfile,wf,base_dir)
