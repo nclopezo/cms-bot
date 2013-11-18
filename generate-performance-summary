@@ -41,8 +41,10 @@ def get_wfs_ordered(base_dir):
 	return [ workflows[wf_number] for wf_number in sorted(workflows.keys()) ]
 
 def add_summary_table(outfile,release_name,base_dir):
+	outfile.write('<div class="container">\n')
 	outfile.write('<div class="row">\n')
-	outfile.write('\t<table class="table span6 offset3" >\n')
+	outfile.write('<div class="col-md-6">\n')	
+	outfile.write('\t<table class="table span6" >\n')
 	add_title_to_table(outfile,release_name)
 	outfile.write('\t<tbody>\n')
 	for wf in get_wfs_ordered(base_dir):
@@ -52,6 +54,8 @@ def add_summary_table(outfile,release_name,base_dir):
 			print
 	outfile.write('\t</tbody>\n')
 	outfile.write('\t</table>\n')
+	outfile.write('</div>\n')
+	outfile.write('</div>\n')
 	outfile.write('</div>\n')
 
 def add_workflow(outfile,workflow_name,base_dir):
@@ -78,7 +82,7 @@ def add_image(base_dir,workflow_name,step):
 		if (img == 'average_cpu_histo.png' or img == 'maximum_rss_histo.png'):
 			print img
 			img_url='%s/%s/%s/%s' % (base_url,workflow_name,step,img)
-			outfile.write('\t\t\t\t<td><a href="%s">' %img_url)
+			outfile.write('\t\t\t\t<td class="span1"><a href="%s">' %img_url)
 			outfile.write('<img src="%s" alt="%s" height="400" width="400" ></a></td>\n' % (img_url,img_url))
 	outfile.write('\t\t\t\t</tr>\n')
 
