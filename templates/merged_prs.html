@@ -26,7 +26,27 @@
         
 	$(document).ready(function () {
 		
-	
+		enable_tabs = function(){
+
+			   //Enable tabbable tabs  
+                        $('#myTab a').click(function (e) {
+                                  e.preventDefault()
+                                  console.log(this)
+                                  $(this).tab('show')
+                         })
+        
+                        // Javascript to enable link to tab
+                        var url = document.location.toString();
+                        if (url.match('#')) {
+                                $('#myTab a[href=#'+url.split('#')[1]+']').tab('show') ;
+                        }
+
+                        // Change hash for page-reload
+                        $('myTab a').on('shown', function (e) {
+                                window.location.hash = e.target.hash;
+                        })
+
+		}
 
 		write_pr = function(pr,pr_list_group){
 			console.log(pr)
@@ -136,18 +156,15 @@
 
 			 $("#results").append(tabs_content)
 		
-			//Enable tabbable tabs	
-			$('#myTab a').click(function (e) {
-                                  e.preventDefault()
-                                  console.log(this)
-                                  $(this).tab('show')
-                         })
+			enable_tabs() 
+		
 	
-			
                 }
 	
 
   		$.getJSON( "merged_prs_summary.json", f)
+
+
 
 	})	
 	
