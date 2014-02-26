@@ -66,6 +66,10 @@ def get_info_pr(line):
 def get_tags_from_line(line, release_queue):
 	tags_str = line.split('tags->')[1]
 	filter = release_queue[:-1]
+	special_queues = ['BOOSTIO','ROOT6','THREADED','GEANT10']
+	for sp in special_queues:
+		if sp in filter:
+			filter = filter.replace('%s_'%sp,'') 
 	## if the tags part is equal to ," there are no tags
 	if tags_str != ',"':
 		tags = tags_str.split(',',1)[1].strip().replace('(','').replace(')','').split(',')
@@ -74,7 +78,6 @@ def get_tags_from_line(line, release_queue):
 		return tags
 	else:
 		return []
-
 
 def analyze_merged_prs_ouput(output,start_tag,release_queue,release_queue_results):
 	comparisons = []
@@ -92,13 +95,13 @@ def analyze_merged_prs_ouput(output,start_tag,release_queue,release_queue_result
 			for i in range(num_tags):
 				if i < num_tags-1:
 					comparison_info = {}
-					comparison_info['compared_tags'] = new_tags[i].strip()
+					comparison_info['compared_tags'] = new_tags[i].strip().replace('tag: ','')
 					comparison_info['merged_prs'] = []
 					temp_comparisons.append(comparison_info)
 				# I am in the last tag and this one was responsible of the prs that I have been accumilatng in merged_prs
 				else:	
 					comparison_info = {}
-                                        comparison_info['compared_tags'] = new_tags[i].strip().replace('"','')
+                                        comparison_info['compared_tags'] = new_tags[i].strip().replace('"','').replace('tag: ','')
                                         comparison_info['merged_prs'] = merged_prs
 					temp_comparisons.append(comparison_info)
 					#now I have to reset merged_prs to be ready for a new list
@@ -131,14 +134,14 @@ def analyze_merged_prs_ouput_backwards(output,start_tag,release_queue,release_qu
                         for i in range(num_tags):
                                 if i < num_tags-1:
                                         comparison_info = {}
-                                        comparison_info['compared_tags'] = new_tags[i].strip().replace('"','')
+                                        comparison_info['compared_tags'] = new_tags[i].strip().replace('"','').replace('tag: ','')
                                         comparison_info['merged_prs'] = []
 					if not read_first:
                                         	temp_comparisons.insert(0,comparison_info)
                                 # I am in the last tag and this one was responsible of the prs that I will accumulate from now on
                                 else:
 					if current_tag == '':
-						current_tag =  new_tags[i].strip().replace('"','')
+						current_tag =  new_tags[i].strip().replace('"','').replace('tag: ','')
 						read_first = True
 					else:
 						comparison_info = {}
@@ -157,11 +160,19 @@ def analyze_merged_prs_ouput_backwards(output,start_tag,release_queue,release_qu
 			break
 
 def get_results_one_relval_file(file):
-	f = open(file, "r")
-	result=pickle.load(f)
-	failed = [x for v in result.values() for x in v["failed"] if x > 0]
-	# if it is empty all tests passed
-	if failed == []:
+	read_last_line_command = 'tail -n1 %s' %file
+
+	p = subprocess.Popen(read_last_line_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	out,err = p.communicate()
+        ret_code = p.returncode
+
+        if ret_code != 0:
+                print ret_code
+                print 'Error:'
+                print err
+                exit(1)
+
+	if '0 0 0 0 0 failed' in out:
 		return True
 	else:
 		return False
@@ -201,8 +212,9 @@ def execute_magic_command_prs(start_tag,end_tag,release_queue,release_queue_resu
 	out,err = p.communicate()
 	ret_code = p.returncode
 	
-	if ret_code != 0:
+	if ret_code != 0 and out != '':
                 print ret_code
+		print 'Error:'
                 print err
 		exit(1)
 	else:
@@ -222,6 +234,7 @@ def execute_magic_command_find_results_relvals(relvals_results):
 
         	if ret_code != 0:
                 	print ret_code
+			print 'Error:'
                 	print err
 			exit(1)
 		else:
@@ -262,9 +275,9 @@ magic_command_backwards_prs = 'GIT_DIR=/afs/cern.ch/cms/git-cmssw-mirror/cmssw.g
 
 magic_command_prs = 'GIT_DIR=/afs/cern.ch/cms/git-cmssw-mirror/cmssw.git git log --merges  --pretty=\'"%s", "%b", "tags->,%d"\' START_TAG..END_TAG | grep "Merge pull"'
 
-magic_command_find_resutls_relvals = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name runTheMatrixMsgs.pkl'
+magic_command_find_resutls_relvals = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name runall-report-step123-.log'
 
-architectures = ['slc5_amd64_gcc472','slc5_amd64_gcc481','slc6_amd64_gcc481']
+architectures = ['slc5_amd64_gcc462','slc6_amd64_gcc472','slc5_amd64_gcc472','slc5_amd64_gcc481','slc6_amd64_gcc481']
 
 print magic_command_prs
 
@@ -276,8 +289,8 @@ for comp in requested_comparisons:
 	
 	release_queue = start_tag
 	
-	# if is a SLHC release, the split will happen with the fifth underscore _
-	if 'SLHC' in release_queue:
+	# if is a SLHC or any special release, the split will happen with the fifth underscore _
+	if 'SLHC' in release_queue or 'BOOSTIO' in release_queue or 'ROOT6' in release_queue or 'THREADED'in release_queue or 'GEANT10' in release_queue:
 		release_queue = re.match(r'^((?:[^_]*_){%d}[^_]*)_(.*)' % (4), release_queue).groups()[0]
 	else:
 		release_queue = re.match(r'^((?:[^_]*_){%d}[^_]*)_(.*)' % (3), release_queue).groups()[0]
