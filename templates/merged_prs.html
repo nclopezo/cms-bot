@@ -67,8 +67,10 @@
 			
 			
 			var comp_tags = comparison.compared_tags
+			current_tag = comp_tags.split("-->")[1]
+			var prev_tag = comp_tags.split("-->")[0]
 
-			var title_compared_tags = $("<h3></h3>").text(comp_tags)
+			var title_compared_tags = $("<h3></h3>").text(current_tag)
 			
 			title_compared_tags.append($("<br>"))
 			title_compared_tags.append($("<br>"))
@@ -117,6 +119,16 @@
 			
 
 			tab_pane.append(title_table)
+
+			var comp_link_address = comparison.compared_tags.replace("-->","...")
+                        comp_link_address = "https://github.com/cms-sw/cmssw/compare/".concat(comp_link_address)
+                        var comp_link = $("<a></a>").attr("href", comp_link_address)
+                        comp_link.append($("<span></span>").text("See comparison with "+prev_tag+" on GitHub"))
+                        
+                        var see_on_github = $("<small></small>").append(comp_link)
+                        
+                        tab_pane.append(see_on_github)
+
 			var pull_requests = comparison.merged_prs			
 			
 			var pr_list_group = $('<ul class="list-group"></ul>')
