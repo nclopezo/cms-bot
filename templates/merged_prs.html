@@ -17,7 +17,7 @@
 		<div class="col-md-10"  id="results"></div>
 		</div>
 		<div class="span3">
-	</div>
+		</div>
 
 	<script>
         
@@ -61,6 +61,14 @@
 
 			pr_list_group.append(list_item)
 
+		}
+		add_qa_link_to_row = function(row, arch,release_name){
+			var result_cell = $('<td></td>')
+			var url = 'http://cmssdt.cern.ch/SDT/cgi-bin//newQA.py?arch='+arch+'&release='+release_name
+			var r_link = $("<a></a>").attr("href", url)
+			r_link.append($("<span></span>").text('See Results'))
+			result_cell.append(r_link)
+			row.append(result_cell)
 		}
 	
 		add_tests_to_row = function(tests,row,arch,type){
@@ -125,6 +133,15 @@
 
 		}
 
+		add_static_analyzer_link = function (title_cell,url){
+			if (url != ''){
+				var sa_link = $("<a></a>").attr("href", url)
+				sa_link.append($('<span class="glyphicon glyphicon-eye-open"></span>'))
+				sa_link.append($('<span></span>').text('Static Analyzer'))
+				title_cell.append(sa_link)
+			}
+		}
+
 		write_comp_title =  function(comparison , tab_pane){
 		
 			var current_tag = comparison.compared_tags.split("-->")[1]
@@ -136,9 +153,10 @@
                         
                         var title_table = $('<table class="table table-condensed"></table>')
 
-                        var title_cell = $('<td rowspan=4></td>').append(title_compared_tags)
+                        var title_cell = $('<td></td>').append(title_compared_tags)
                         //here I check the result of the relvals
 
+			add_static_analyzer_link(title_cell,comparison.static_checks)
 
 			var title_row = $('<tr></tr>')	
                         var relvals_results = comparison.relvals
@@ -146,6 +164,8 @@
 			var addons_results = comparison.addons
 			var architectures = comparison.tests_archs
                         
+			title_cell.attr("rowspan",architectures.length+1)
+
                         console.log('*************')
                         console.log(comparison.compared_tags)
                         console.log(relvals_results)
@@ -165,6 +185,8 @@
                                 title_row.append(rvs_title)
 				var addons_title = $('<th></th>').text('Other Tests')
                                 title_row.append(addons_title)
+				var qa_title = $('<th></th>').text('Q/A')
+                                title_row.append(qa_title)
 
                                 for( var i = 0; i < architectures.length; i++){
                                         var ar_row = $('<tr></tr>')
@@ -174,6 +196,7 @@
 					add_tests_to_row(uTests_results,ar_row,architectures[i],'utests')
 					add_tests_to_row(relvals_results,ar_row,architectures[i],'relvals')
 					add_tests_to_row(addons_results,ar_row,architectures[i],'addons')
+					add_qa_link_to_row(ar_row,architectures[i],current_tag)
                                         title_table.append(ar_row)
                                 }
                         }

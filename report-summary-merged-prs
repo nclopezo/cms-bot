@@ -159,7 +159,7 @@ def get_output_command(command_to_execute):
 
 def execute_magic_command_tags(start_tag,end_tag,release_queue):
   tags = []
-  command_to_execute = magic_command_tags.replace('START_TAG',start_tag).replace('END_TAG',end_tag)
+  command_to_execute = MAGIC_COMMAND_TAGS.replace('START_TAG',start_tag).replace('END_TAG',end_tag)
   out = get_output_command(command_to_execute)
   tags = get_tags(out,release_queue)
   tags.append(start_tag)
@@ -167,7 +167,7 @@ def execute_magic_command_tags(start_tag,end_tag,release_queue):
   return tags
 
 def execute_command_compare_tags(start_tag,end_tag):
-  command_to_execute = magic_command_prs.replace('START_TAG',start_tag).replace('END_TAG',end_tag)
+  command_to_execute = MAGIC_COMMAND_PRS.replace('START_TAG',start_tag).replace('END_TAG',end_tag)
   output = get_output_command(command_to_execute)
   print '------'
   comp = {}
@@ -188,13 +188,13 @@ def compare_tags(tags):
 
 
 def execute_magic_command_find_results(results,type):
-  for arch in architectures:
+  for arch in ARCHITECTURES:
     if type == 'relvals':
-      base_command = magic_command_find_resutls_relvals
+      base_command = MAGIC_COMMAD_FIND_RESULTS_RELVALS
     elif type == 'utests':
-      base_command = magic_command_find_results_unitTests
+      base_command = MAGIC_COMMAND_FIND_RESULTS_UNIT_TESTS
     elif type == 'addOn':
-      base_command = magic_command_find_results_addOn
+      base_command = MAGIC_COMMAND_FIND_RESULTS_ADDON
     else:
       print 'not a valid test type %s' %type
       exit(1)
@@ -214,6 +214,8 @@ def print_results(results):
     print '/////////////////////////'
     for comp in rq['comparisons']:
       print comp['compared_tags']
+
+      print '\t' + 'Static Checks:' + comp['static_checks']
 
       relvals_results = [res['arch']+':'+str(res['passed']) for res in comp['relvals'] ]
       print '\t' + 'RelVals:'+ str(relvals_results)
@@ -243,24 +245,39 @@ def add_tests_to_results(results, unit_tests, relvals_results,addon_results):
       b = [t['arch'] for t in rvsres] if rvsres else []
       comp['tests_archs'] = list(set(a+b))
 
+def find_static_results(comparisons):
+  for comp in comparisons:
+    rel_name = comp['compared_tags'].split('-->')[1]
+    comp['static_checks'] = find_one_static_check(rel_name) 
+
+def find_one_static_check(release_name):
+  command_to_execute = MAGIC_COMMAND_FIND_STATIC_CHECKS.replace('RELEASE_NAME',release_name)
+  out = get_output_command(command_to_execute)
+  if '200 OK' in out:
+    return STATIC_CHECKS_URL.replace('RELEASE_NAME',release_name)
+  else:
+    return ''
 
 #-----------------------------------------------------------------------------------
 #---- Start of execution
 #-----------------------------------------------------------------------------------
 
-magic_command_prs = 'GIT_DIR=/afs/cern.ch/cms/git-cmssw-mirror/cmssw.git git log --merges  --pretty=\'"%s", "%b", "tags->,%d"\' START_TAG..END_TAG | grep "Merge pull"'
+MAGIC_COMMAND_PRS  = 'GIT_DIR=/afs/cern.ch/cms/git-cmssw-mirror/cmssw.git git log --merges  --pretty=\'"%s", "%b", "tags->,%d"\' START_TAG..END_TAG | grep "Merge pull"'
 
-magic_command_find_resutls_relvals = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name runall-report-step123-.log'
+MAGIC_COMMAD_FIND_RESULTS_RELVALS  = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name runall-report-step123-.log'
 
-magic_command_tags = 'GIT_DIR=/afs/cern.ch/cms/git-cmssw-mirror/cmssw.git git log --merges  --pretty=\'"%s", "%b", "tags->,%d"\' START_TAG..END_TAG | grep -E "Merge [pull|remote]"'
+MAGIC_COMMAND_TAGS = 'GIT_DIR=/afs/cern.ch/cms/git-cmssw-mirror/cmssw.git git log --merges  --pretty=\'"%s", "%b", "tags->,%d"\' START_TAG..END_TAG | grep -E "Merge [pull|remote]"'
 
-magic_command_find_results_unitTests = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name unitTests-summary.log'
+MAGIC_COMMAND_FIND_RESULTS_UNIT_TESTS = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name unitTests-summary.log'
 
-magic_command_find_results_addOn = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name addOnTests.log'
+MAGIC_COMMAND_FIND_RESULTS_ADDON  = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name addOnTests.log'
 
-architectures = ['slc5_amd64_gcc462','slc6_amd64_gcc472','slc5_amd64_gcc472','slc5_amd64_gcc481','slc6_amd64_gcc481','slc6_amd64_gcc490']
+STATIC_CHECKS_URL = 'https://cmssdt.cern.ch/SDT/jenkins-artifacts/ib-static-analysis/RELEASE_NAME/slc5_amd64_gcc481/llvm-analysis/index.html'
 
-print magic_command_prs
+MAGIC_COMMAND_FIND_STATIC_CHECKS = 'curl -s -k --head %s | head -n 1' % STATIC_CHECKS_URL
+
+ARCHITECTURES = ['slc5_amd64_gcc462','slc6_amd64_gcc472','slc5_amd64_gcc472','slc5_amd64_gcc481','slc6_amd64_gcc481','slc6_amd64_gcc490']
+
 
 results = []
 
@@ -284,6 +301,8 @@ for comp in requested_comparisons:
   tags = execute_magic_command_tags(start_tag,end_tag,release_queue)
 
   release_queue_results['comparisons'] = compare_tags(tags)
+
+  find_static_results(release_queue_results['comparisons'])
 
   results.append(release_queue_results)
 	
