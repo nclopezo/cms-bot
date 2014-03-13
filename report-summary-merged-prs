@@ -79,11 +79,18 @@ def get_tags_from_line(line, release_queue):
 #---- Fuctions -- Analize Git ouputs
 #-----------------------------------------------------------------------------------
 
+def get_results_one_addOn_file(file):
+  look_for_err_cmd = 'grep "failed" %s' %file
+  result = get_output_command(look_for_err_cmd)
+  if '0 failed' in result:
+    return True
+  else:
+    return False
+
 def get_results_one_unitTests_file(file):
   look_for_err_cmd = 'grep "ERROR" %s' %file
   result = get_output_command(look_for_err_cmd)
 
-  #print result
   if result != '':
     return False
   else:
@@ -110,6 +117,8 @@ def analyze_tests_results(output,results,arch,type):
       passed = get_results_one_relval_file(line)
     elif type == 'utests':
       passed = get_results_one_unitTests_file(line)
+    elif type == 'addOn':
+      passed = get_results_one_addOn_file(line)
     else:
       print 'not a valid test type %s' %type
       exit(1)
@@ -121,7 +130,6 @@ def analyze_tests_results(output,results,arch,type):
       
     results[rel_name].append(result_arch)
  
-  return results
 
 def get_tags(output,release_queue):
   tags = []
@@ -179,17 +187,21 @@ def compare_tags(tags):
   return comparisons
 
 
-def execute_magic_command_find_results_relvals(relvals_results):
+def execute_magic_command_find_results(results,type):
   for arch in architectures:
-    command_to_execute = magic_command_find_resutls_relvals.replace('ARCHITECTURE',arch)
-    out = get_output_command(command_to_execute)
-    analyze_tests_results(out,relvals_results,arch,'relvals')
+    if type == 'relvals':
+      base_command = magic_command_find_resutls_relvals
+    elif type == 'utests':
+      base_command = magic_command_find_results_unitTests
+    elif type == 'addOn':
+      base_command = magic_command_find_results_addOn
+    else:
+      print 'not a valid test type %s' %type
+      exit(1)
 
-def execute_magic_command_find_results_unit_tests(unit_tests_results):
-  for arch in architectures:
-    command_to_execute = magic_command_find_results_unitTests.replace('ARCHITECTURE',arch)
+    command_to_execute = base_command.replace('ARCHITECTURE',arch)
     out = get_output_command(command_to_execute)
-    analyze_tests_results(out,unit_tests_results,arch,'utests')
+    analyze_tests_results(out,results,arch,type)
 
 
 def print_results(results):
@@ -209,17 +221,24 @@ def print_results(results):
       utests_results = [res['arch']+':'+str(res['passed']) for res in comp['utests'] ]
       print '\t' + 'UnitTests:' + str(utests_results)
 
-      merged_prs = [pr['number'] for pr in comp['merged_prs']]
-      print '\t' + str(merged_prs)
+      addons_results = [res['arch']+':'+str(res['passed']) for res in comp['addons'] ]
+      print '\t' + 'AddOns:' + str(addons_results)
 
-def add_tests_to_results(results, unit_tests, relvals_results):
+      merged_prs = [pr['number'] for pr in comp['merged_prs']]
+      print '\t' + 'PRs:' + str(merged_prs)
+
+def add_tests_to_results(results, unit_tests, relvals_results,addon_results):
   for rq in results:
     for comp in rq['comparisons']:
       rel_name = comp['compared_tags'].split('-->')[1]
       rvsres = relvals_results.get(rel_name)
       utres = unit_tests.get(rel_name)
+      adonres = addon_results.get(rel_name)
+
       comp['relvals'] = rvsres if rvsres else []
       comp['utests'] = utres if utres else []
+      comp['addons'] = adonres if adonres else []
+
       a = [t['arch'] for t in utres] if utres else []
       b = [t['arch'] for t in rvsres] if rvsres else []
       comp['tests_archs'] = list(set(a+b))
@@ -236,6 +255,8 @@ magic_command_find_resutls_relvals = 'find /afs/cern.ch/cms/sw/ReleaseCandidates
 magic_command_tags = 'GIT_DIR=/afs/cern.ch/cms/git-cmssw-mirror/cmssw.git git log --merges  --pretty=\'"%s", "%b", "tags->,%d"\' START_TAG..END_TAG | grep -E "Merge [pull|remote]"'
 
 magic_command_find_results_unitTests = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name unitTests-summary.log'
+
+magic_command_find_results_addOn = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name addOnTests.log'
 
 architectures = ['slc5_amd64_gcc462','slc6_amd64_gcc472','slc5_amd64_gcc472','slc5_amd64_gcc481','slc6_amd64_gcc481','slc6_amd64_gcc490']
 
@@ -271,15 +292,17 @@ for comp in requested_comparisons:
 
 relvals_results = {}
 
-execute_magic_command_find_results_relvals(relvals_results)
+execute_magic_command_find_results(relvals_results,'relvals')
 
 unit_tests_results = {}
 
-execute_magic_command_find_results_unit_tests(unit_tests_results)
+execute_magic_command_find_results(unit_tests_results,'utests')
 
-add_tests_to_results(results, unit_tests_results, relvals_results)
+addOn_tests_results = {}
 
+execute_magic_command_find_results(addOn_tests_results,'addOn')
 
+add_tests_to_results(results, unit_tests_results, relvals_results,addOn_tests_results)
 print_results(results)
 
 out_json = open("merged_prs_summary.json", "w")

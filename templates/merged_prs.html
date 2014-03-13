@@ -64,9 +64,12 @@
 		}
 	
 		add_tests_to_row = function(tests,row,arch,type){
-			// don't do anything if tere are no results for that kind of tests
-			if (tests.length == 0)
+			// just add a blank cell if tere are no results for that kind of tests
+			if (tests.length == 0){
+				var result_cell = $('<td></td>')
+				row.append(result_cell)
 				return
+			}
 				
 			var result = null
                         var file = null
@@ -80,9 +83,12 @@
                         		break
                         	}                       
                         }
-			//don't do anything if I didn't find any results for that arch
-			if (result == null || file == null)
+			//just add a blank cell if I didn't find any results for that arch
+			if (result == null || file == null){
+				var result_cell = $('<td></td>')
+                                row.append(result_cell)
 				return
+			}
 
 			console.log(result)
 			console.log(file)
@@ -91,13 +97,24 @@
                         res_label.attr("class", r_class)
                         res_label.text('See Details')
                         var link_parts = file.split('/')
-                        var details_link = type == 'utests'? 
-							"https://cmssdt.cern.ch/SDT/cgi-bin/showBuildLogs.py/" + link_parts[6] + '/'
+			
+                        var details_link = ""
+
+			if (type == 'utests'){
+				details_link="https://cmssdt.cern.ch/SDT/cgi-bin/showBuildLogs.py/" + link_parts[6] + '/'
                                                                 +link_parts[7]+'/'+link_parts[8]+'/'+link_parts[9]
                                                                 +'/'+link_parts[10]
-						    :"https://cmssdt.cern.ch/SDT/cgi-bin//showMatrixTestLogs.py/" + link_parts[6] + '/'
+
+			}else if(type == 'relvals'){
+				details_link="https://cmssdt.cern.ch/SDT/cgi-bin//showMatrixTestLogs.py/" + link_parts[6] + '/'
                                                                 +link_parts[7]+'/'+link_parts[8]+'/'+link_parts[9]+'/'+link_parts[10]
                                                                 +'/'+link_parts[11]+'/'+link_parts[12]
+			}else if(type == 'addons'){
+				details_link = "https://cmssdt.cern.ch/SDT/cgi-bin//showAddOnLogs.py/" + link_parts[6] + '/'
+                                                                +link_parts[7]+'/'+link_parts[8]+'/'+link_parts[9]+'/'+link_parts[10]
+								+'/'+'addOnTests'+'/'
+
+			}
 
                         var r_link = $("<a></a>").attr("href", details_link)
                         r_link.append(res_label)
@@ -126,6 +143,7 @@
 			var title_row = $('<tr></tr>')	
                         var relvals_results = comparison.relvals
 			var uTests_results = comparison.utests
+			var addons_results = comparison.addons
 			var architectures = comparison.tests_archs
                         
                         console.log('*************')
@@ -145,6 +163,8 @@
 				title_row.append(utests_title)
 				var rvs_title = $('<th></th>').text('RelVals')
                                 title_row.append(rvs_title)
+				var addons_title = $('<th></th>').text('Other Tests')
+                                title_row.append(addons_title)
 
                                 for( var i = 0; i < architectures.length; i++){
                                         var ar_row = $('<tr></tr>')
@@ -153,6 +173,7 @@
                                         ar_row.append(ar_cell)
 					add_tests_to_row(uTests_results,ar_row,architectures[i],'utests')
 					add_tests_to_row(relvals_results,ar_row,architectures[i],'relvals')
+					add_tests_to_row(addons_results,ar_row,architectures[i],'addons')
                                         title_table.append(ar_row)
                                 }
                         }
