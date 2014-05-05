@@ -9,7 +9,7 @@ from pickle import Unpickler
 #-----------------------------------------------------------------------------------
 #---- Parser Options
 #-----------------------------------------------------------------------------------
-parser = OptionParser(usage="usage: %prog REPO COMPARISON_PAIRS" 
+parser = OptionParser(usage="usage: %prog REPO COMPARISON_PAIRS %options" 
                             "\n REPO: location of the repository."
 			    "\n for example: cmssw.git or /afs/cern.ch/cms/git-cmssw-mirror/cmssw.git"
                             "\n COMPARISON_PAIRS: a list separated by commas with the pairs of tags or "
@@ -17,8 +17,13 @@ parser = OptionParser(usage="usage: %prog REPO COMPARISON_PAIRS"
                             "\n For example:"
 			    "\n CMSSW_7_1_0_pre2..CMSSW_7_0_X,CMSSW_6_2_7..CMSSW_6_2_X")
 
-(options, args) = parser.parse_args()
+parser.add_option("--read-config-map", action="store_true", dest="use_config_map", help="Use config.map to get the release branches"
+                  "\n You must indicate the location of the config.map file instead of COMPARISON_PAIRS")
 
+parser.add_option("--start-date", action="store", type="string", dest="start_date", help="Which date to use as start date,"
+                  " when the release branches are taken from config.map. For example 2014-05-02-0200", default='None')
+
+(options, args) = parser.parse_args()
 #-----------------------------------------------------------------------------------
 #---- Review of arguments
 #-----------------------------------------------------------------------------------
@@ -29,13 +34,35 @@ if (len(args)<2):
   exit()
 
 repo = args[0]
-requested_comparisons_param = args[1]
 
-requested_comparisons = requested_comparisons_param.split(",")
+if options.use_config_map:
+  cfg_map = args[1]
+  print 'I will analyze the releases that are in %s' % cfg_map
+else:
+  requested_comparisons_param = args[1]
+  requested_comparisons = requested_comparisons_param.split(",")
 
 #-----------------------------------------------------------------------------------
 #---- Fuctions
 #-----------------------------------------------------------------------------------
+
+def get_requested_comparisons_from_file():
+  release_queues = []
+  f = open(cfg_map, "r")
+  lines = f.readlines()
+  for line in lines:
+    rq = line.replace('\n','').split('RELEASE_QUEUE=')[1][:-1]
+    if rq not in release_queues:
+      release_queues.append(rq)
+
+  if options.start_date != None:
+    comps = ["%s_%s..%s" % (rq,options.start_date,rq) for rq in release_queues]
+  else:
+    comps = ["%s@{1.week.ago}..%s" % (rq,rq) for rq in release_queues]
+
+  print comps
+  return comps
+  
 
 def get_pr_number(line_parts):
   number_and_name = line_parts[0].replace('"','')
@@ -251,6 +278,8 @@ def get_output_command(command_to_execute):
     print ret_code
     print 'Error:'
     print err
+    print '--'
+    print out
 
   return out,err,ret_code
 
@@ -447,7 +476,7 @@ MAGIC_COMMAND_FIND_HLT_TESTS = 'curl -s -k --head %s | head -n 1' % HLT_TESTS_UR
 
 ARCHITECTURES = ['slc5_amd64_gcc462','slc6_amd64_gcc472','slc5_amd64_gcc472','slc5_amd64_gcc481','slc6_amd64_gcc481','slc6_amd64_gcc490','slc6_mic_gcc481','osx108_amd64_gcc481']
 
-SPECIAL_RELEASES = ['SLHC','BOOSTIO','ROOT6','THREADED','GEANT10','DEVEL','CLANG']
+SPECIAL_RELEASES = ['SLHC','BOOSTIO','ROOT6','THREADED','GEANT10','DEVEL','CLANG','DEBUG']
 
 SP_REL_REGEX = "|".join(SPECIAL_RELEASES)
 
@@ -475,10 +504,16 @@ class PossibleUnitTestResults:
 
 results = []
 
+if options.use_config_map:
+  requested_comparisons = get_requested_comparisons_from_file()
+
 for comp in requested_comparisons:
   start_tag = comp.split("..")[0]
   end_tag = comp.split("..")[1]
+
   release_queue = start_tag
+  print release_queue
+
   # if is a SLHC or any special release, the split will happen with the fifth underscore _
   if re.search(SP_REL_REGEX,release_queue):
     print 'This is a special release'
