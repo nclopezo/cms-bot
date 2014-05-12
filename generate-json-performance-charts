@@ -140,6 +140,18 @@ result['wfs'] = []
 for l in lines:
   if l.startswith("#"):
     continue
+  elif l.startswith("GENERAL"):
+    l = l.replace('\n','')
+    parts = l.split(' ')
+    wf_name = 'General'
+    step_name = parts[1]
+    param_name = parts[2]
+
+    workflow = add_workflow(result,wf_name)
+    step = add_step(workflow,step_name)
+    param = add_param(step,param_name)
+    param['url'] = parts[3]
+    
   else:
     l = l.replace('\n','')
     parts = l.split(' ')

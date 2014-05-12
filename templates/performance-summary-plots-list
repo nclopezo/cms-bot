@@ -10,3 +10,4 @@
 202_0_TTbar+TTbarINPUT+DIGIPU1+RECOPU1+HARVEST step3_TTbar+TTbar+DIGIPU1+RECOPU1+HARVEST PeakValueRss
 400_0_TTbar+TTbarFSPU+HARVESTFS step1_TTbar+TTbarFSPU+HARVESTFS AvgEventCPU
 400_0_TTbar+TTbarFSPU+HARVESTFS step1_TTbar+TTbarFSPU+HARVESTFS PeakValueRss
+GENERAL CMSSW_7_1_X-FileSize FileSize https://cmsgraph.cern.ch/render?target=highestCurrent%28IBStats.slc6_amd64_gcc481.CMSSW_7_1_X.*.FileSize,10%29&height=800&width=800&from=-15days&fontBold=true&fontSize=12&lineWidth=2&title=FileSize&yMin=-100
