@@ -7,7 +7,7 @@ import re
 #-----------------------------------------------------------------------------------
 #---- Parser Options
 #-----------------------------------------------------------------------------------
-parser = OptionParser(usage="usage: %prog ACTION [options] \n ACTION = TESTS_OK_PR | PARSE_UNIT_TESTS_FAIL | PARSE_BUILD_FAIL | PARSE_MATRIX_FAIL | COMPARISON_READY | STD_COUT")
+parser = OptionParser(usage="usage: %prog ACTION [options] \n ACTION = TESTS_OK_PR | PARSE_UNIT_TESTS_FAIL | PARSE_BUILD_FAIL | PARSE_MATRIX_FAIL | COMPARISON_READY | STD_COUT | ALTERNATIVE_COMPARISON_READY")
 
 parser.add_option("-u", action="store", type="string", dest="username", help="Your github account username", default='None')
 parser.add_option("-p", action="store", type="string", dest="password", help="Your github account password", default='None')
@@ -141,6 +141,16 @@ def send_comparison_ready_message(official_cmssw,pr_number,tests_results_url):
   if not options.no_post_mesage:
     pull_request.create_issue_comment(message)
 
+def send_alternative_comparison_ready_message(official_cmssw,pr_number,tests_results_url):
+  pull_request = official_cmssw.get_pull(pr_number)
+  print 'I will notify that the alternative comparison is ready for PR %d:' % pr_number
+  message = ALTERNATIVE_COMPARISON_READY_MSG +'\n' + ALT_COMPARISON_URL
+  print 'Message:'
+  print message
+  if not options.no_post_mesage:
+    pull_request.create_issue_comment(message)
+
+
 def send_std_cout_found_message(official_cmssw,pr_number,tests_results_url):
   pull_request = official_cmssw.get_pull(pr_number)
   print 'I will notify that I found a std::cout on PR %d:' % pr_number
@@ -170,6 +180,8 @@ def complain_missing_param(param_name):
 #---------------------------------------------------------------------------------------
 
 COMPARISON_READY_MSG = 'Comparison is ready'
+ALTERNATIVE_COMPARISON_READY_MSG = 'Alternative comparison is ready'
+
 STD_COUT_FOUND_MSG = '-1 \n There is a std::cout in the diff for this pull request. Could you please clean it up?'
 
 #----------------------------------------------------------------------------------------
@@ -221,7 +233,8 @@ else:
 
 official_cmssw=get_cmssw_official_repo(github)
 
-tests_results_url='https://cmssdt.cern.ch/SDT/jenkins-artifacts/pull-request-integration/PR-%d/%d/summary.html' % (pr_number,pr_job_id)
+tests_results_url = 'https://cmssdt.cern.ch/SDT/jenkins-artifacts/pull-request-integration/PR-%d/%d/summary.html' % (pr_number,pr_job_id)
+ALT_COMPARISON_URL = 'https://cmssdt.cern.ch/SDT/jenkins-artifacts/pull-request-integration/PR-%d/%d/alternative-comparisons' % (pr_number,pr_job_id)
 
 if (action == 'TESTS_OK_PR'):
   send_tests_approved_pr_message(official_cmssw,pr_number,tests_results_url)
@@ -238,5 +251,7 @@ elif (action == 'COMPARISON_READY'):
   send_comparison_ready_message(official_cmssw,pr_number,tests_results_url)
 elif (action == 'STD_COUT'):
   send_std_cout_found_message(official_cmssw,pr_number,tests_results_url)
+elif (action == 'ALTERNATIVE_COMPARISON_READY'):
+  send_alternative_comparison_ready_message(official_cmssw,pr_number,tests_results_url)
 else:
   print "I don't recognize that action!"
