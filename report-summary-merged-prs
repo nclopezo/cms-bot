@@ -42,31 +42,37 @@ requested_comparisons = requested_comparisons_param.split(",")
 def is_pr_from_merge_commit(graph_part):
   return graph_part.startswith('|')
 
+def get_pr_hash(line_parts):
+  hash = line_parts[0].replace('"','')
+  return hash
+
 def get_pr_number(line_parts):
-  number_and_name = line_parts[0].replace('"','')
+  number_and_name = line_parts[1].replace('"','')
   number = re.sub(' from .*', '', number_and_name)
   number = re.sub('Merge pull request #', '', number)
   return number
 
 def get_pr_author_login(line_parts):
-  number_and_name = line_parts[0].replace('"','')
+  number_and_name = line_parts[1].replace('"','')
   name = re.sub('^Merge .* from ', '', number_and_name)
   name = name.split('/')[0]
   return name
 
 def get_pr_title(line_parts):
-  title = line_parts[1].replace('"','').strip()
+  title = line_parts[2].replace('"','').strip()
   return title
 
 #gets the information of the pull request
 def get_info_pr(line):
   pull_request = {}
   line_parts = line.split(',')
+  pull_request['hash'] = get_pr_hash(line_parts)
   pull_request['number'] = get_pr_number(line_parts)
   pull_request['author_login'] = get_pr_author_login(line_parts)
   pull_request['title'] = get_pr_title(line_parts)
   pull_request['url'] = 'https://github.com/cms-sw/cmssw/pull/%d' % int(pull_request['number'])
   pull_request['from_merge_commit'] = False
+
   return pull_request
 
 #reads a line of the output of git log and returns the tags that it contains
@@ -512,15 +518,15 @@ def identify_release_groups(results):
 #-----------------------------------------------------------------------------------
 
 # I used this type of concatenation because the string has %s inside
-MAGIC_COMMAND_PRS  = 'GIT_DIR='+repo+' git log --merges  --pretty=\'"%s", "%b", "tags->,%d"\' START_TAG..END_TAG | grep "Merge pull"'
+MAGIC_COMMAND_PRS  = 'GIT_DIR='+repo+' git log --merges  --pretty=\'"%H,%s", "%b", "tags->,%d"\' START_TAG..END_TAG | grep "Merge pull"'
 
-MAGIC_COMMAND_GRAPH = 'GIT_DIR='+repo+' git log --merges --graph --pretty=\'"%s", "%b"\' RELEASE_QUEUE | grep "Merge pull"'
+MAGIC_COMMAND_GRAPH = 'GIT_DIR='+repo+' git log --merges --graph --pretty=\'"%H,%s", "%b"\' RELEASE_QUEUE | grep "Merge pull"'
 
-MAGIC_COMMAND_FIND_FIRST_MERGE_WITH_TAG = 'GIT_DIR='+repo+' git log --merges  --pretty=\'"%s", "%b", "tags->,%d"\' END_TAG | grep "tags->" | head -n1'
+MAGIC_COMMAND_FIND_FIRST_MERGE_WITH_TAG = 'GIT_DIR='+repo+' git log --merges  --pretty=\'"%H,%s", "%b", "tags->,%d"\' END_TAG | grep "tags->" | head -n1'
 
 MAGIC_COMMAD_FIND_RESULTS_RELVALS  = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name runall-report-step123-.log'
 
-MAGIC_COMMAND_TAGS = 'GIT_DIR='+repo+' git log --merges  --pretty=\'"%s", "%b", "tags->,%d"\' START_TAG..END_TAG | grep -E "Merge [pull|remote]"'
+MAGIC_COMMAND_TAGS = 'GIT_DIR='+repo+' git log --merges  --pretty=\'"%H,%s", "%b", "tags->,%d"\' START_TAG..END_TAG | grep -E "Merge [pull|remote]"'
 
 MAGIC_COMMAND_FIND_RESULTS_UNIT_TESTS = 'find /afs/cern.ch/cms/sw/ReleaseCandidates/ARCHITECTURE/www -name unitTests-summary.log'
 

@@ -268,7 +268,7 @@ write_comp_title =  function(comparison , tab_pane){
 //-- Write merged prs
 //----------------------------------------------------------
 
-write_pr = function(pr,pr_list_group){
+write_pr = function(pr,pr_list_group,prevTag){
 
   var list_item = $('<li>')
   var item_link_text = "#".concat(pr.number)
@@ -281,8 +281,14 @@ write_pr = function(pr,pr_list_group){
 
   if (pr.from_merge_commit){
 
+    //this is the comparison of the hash of the commit with the previous tag
+    var comparison = "https://github.com/cms-sw/cmssw/compare/" + prevTag + "..." + pr.hash
+
+    var comp_link = $("<a>").attr("href", comparison)
     var fromMergeGlyph = $('<span class="glyphicon glyphicon-transfer">')
-    list_item.append(fromMergeGlyph)
+
+    comp_link.append(fromMergeGlyph)
+    list_item.append(comp_link)
   }
   
   list_item.append($("<span>").text(pr_description))
@@ -318,6 +324,7 @@ write_comparison = function(comparison,tab_pane){
   write_comp_title(comparison,tab_pane)
   var pull_requests = comparison.merged_prs
 
+  var prevTag = compTags.split("-->")[0]
   //if there were not merged prs in this comparison I alert it
 
   if(comparison.merged_prs.length!=0){
@@ -328,7 +335,7 @@ write_comparison = function(comparison,tab_pane){
     //write the info for each pull request
     for(var i =0; i < pull_requests.length; i++){
     
-      write_pr(pull_requests[i],pr_list_group)
+      write_pr(pull_requests[i],pr_list_group,prevTag)
     
     }
 
@@ -336,7 +343,6 @@ write_comparison = function(comparison,tab_pane){
 
   }else{
 
-    var prevTag = compTags.split("-->")[0]
     var no_prs_found = $('<ul>').append($('<li>').text('No new pull requests since '+prevTag))
     tab_pane.append(no_prs_found)
 
