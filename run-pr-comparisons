@@ -1,5 +1,6 @@
 #!/bin/sh -ex
-BASE_URL=cmsbuild@vocms12.cern.ch:/data/sdt/SDT/jenkins-artifacts/ib-baseline-tests/$RELEASE_FORMAT/$ARCHITECTURE/matrix-results/
+#BASE_URL=cmsbuild@vocms12.cern.ch:/data/sdt/SDT/jenkins-artifacts/ib-baseline-tests/$RELEASE_FORMAT/$ARCHITECTURE/matrix-results/
+BASE_URL=cmsbuild@vocms12.cern.ch:/data/sdt/SDT/jenkins-artifacts/ib-baseline-tests/$RELEASE_FORMAT/slc6_amd64_gcc481/matrix-results/
 PULL_REQUEST_BASE_URL=cmsbuild@vocms12.cern.ch:/data/sdt/SDT/jenkins-artifacts/pull-request-integration/PR-$PULL_REQUEST_NUMBER/$PULL_REQUEST_JOB_ID/runTheMatrix-results/
 
 WF_NAME_4_22='4.22_RunCosmics2011A+RunCosmics2011A+RECOCOSD+ALCACOSD+SKIMCOSD+HARVESTDC/DQM_V0001_R000160960__Global__CMSSW_X_Y_Z__RECO.root'
@@ -13,6 +14,19 @@ WF_NAME_1000_0='1000.0_RunMinBias2011A+RunMinBias2011A+TIER0+SKIMD+HARVESTDfst2+
 WF_NAME_1306_0='1306.0_SingleMuPt1_UP15+SingleMuPt1_UP15+DIGIUP15+RECOUP15+HARVESTUP15/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO.root'
 #WF_NAME_1003_0='1003.0_RunMinBias2012A+RunMinBias2012A+RECODDQM+HARVESTDDQM/DQM_V0001_R000191226__Global__CMSSW_X_Y_Z__RECO.root'
 #WF_NAME_1001_0='1001.0_RunMinBias2011A+RunMinBias2011A+TIER0EXP+ALCAEXP+ALCAHARVD/DQM_V0001_R000165121__Express__PCLTest__ALCAPROMPT.root'
+
+#fix the path for 7_0_X relvals
+case $RELEASE_FORMAT in
+  CMSSW_7_0_*)
+
+  echo "Adapting paths:"
+
+  WF_NAME_4_53='4.53_RunPhoton2012B+RunPhoton2012B+HLTD+RECODreHLT+HARVESTDreHLT+MINIAODDATA/DQM_V0001_R000194533__Global__CMSSW_X_Y_Z__RECO.root'
+  WF_NAME_1306_0='1306.0_SingleMuPt1_UP15+SingleMuPt1_UP15+DIGIUP15+RECOUP15+HARVESTUP15+MINIAODMC50/DQM_V0001_R000000001__Global__CMSSW_X_Y_Z__RECO.root'
+
+  ;;
+
+esac
 
 WORKFLOWS_TO_COMPARE=$WF_NAME_4_22,$WF_NAME_4_53,$WF_NAME_5_1,$WF_NAME_8_0,$WF_NAME_25_0,$WF_NAME_401_0,$WF_NAME_1000_0,$WF_NAME_1306_0
 
