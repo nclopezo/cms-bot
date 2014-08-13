@@ -9,10 +9,13 @@ git clone git@github.com:$CMS_GIT_TOOLS_REPO/cms-git-tools
 # creation of results summary file
 mv $WORKSPACE/templates/PullRequestSummary.html $WORKSPACE/summary.html
 
+PR_GITHUB_LINK=https://github.com/cms-sw/cmssw/pull/$PULL_REQUEST
 
-sed -i "s/PARAM_PR_GITHUB/https:\/\/github.com\/cms-sw\/cmssw\/pull\/$PULL_REQUEST/g" $WORKSPACE/summary.html
-sed -i "s/PARAM_PR/$PULL_REQUEST $ADDITIONAL_PULL_REQUESTS/g" $WORKSPACE/summary.html
-sed -i "s/PARAM_BASE_RELEASE/$RELEASE_FORMAT/g" $WORKSPACE/summary.html
+# The summary of the tests is written in the file testsSummary.txt
+SUMMARY_FILE=testsSummary.txt
+echo PR_GITHUB_LINK:$PR_GITHUB_LINK >> $SUMMARY_FILE
+echo ADDITIONAL_PRS:$ADDITIONAL_PULL_REQUESTS >> $SUMMARY_FILE
+echo BASE_RELEASE:$BASE_RELEASE >> $SUMMARY_FILE
 
 ### this is for triggering the comparison with the baseline
   PULL_REQUEST_NUMBER=$PULL_REQUEST
@@ -52,11 +55,6 @@ else
 
 fi
 
-#if git diff $RELEASE_NAME | grep -E "^[+| ] .* std::cout" ; then
-#  echo "I found a std::cout"
-#  $WORKSPACE/report-pull-request-results STD_COUT -t cmsbuild --pr $PULL_REQUEST_NUMBER --pr-job-id $PULL_REQUEST_JOB_ID
-#  exit 0
-#fi
 
 # this is to test several pull requests at the same time
 for PR in ${ADDITIONAL_PULL_REQUESTS//,/ }; do 
@@ -105,9 +103,14 @@ git log --oneline --merges ${CMSSW_VERSION}..
 git cms-checkdeps -A -a
 
 BUILD_LOG_URL=https:\/\/cmssdt.cern.ch\/SDT\/jenkins-artifacts\/pull-request-integration\/${BUILD_NUMBER}\/build.log
-sed -i "s/PARAM_BUILD_LOG_URL/https:\/\/cmssdt.cern.ch\/SDT\/jenkins-artifacts\/pull-request-integration\/PR-${PULL_REQUEST}\/${BUILD_NUMBER}\/build.log/g" $WORKSPACE/summary.html
+echo BUILD_LOG_URL:$BUILD_LOG_URL >> $SUMMARY_FILE
+
+############################################
+# Build the pull request
+############################################
 
 scram b -k -j $(getconf _NPROCESSORS_ONLN) 2>&1 | tee -a $WORKSPACE/build.log
+
 echo 'END OF BUILD LOG'
 echo '--------------------------------------'
 
