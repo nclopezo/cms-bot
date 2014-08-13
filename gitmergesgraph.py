@@ -3,6 +3,7 @@
 import subprocess
 from commands import getstatusoutput
 import re
+import json
 
 #
 # Interprets the commit history of a branch as a graph.
@@ -14,7 +15,7 @@ import re
 
 INFO_SEPARATOR = '--INFO--'
 REPO = 'cmssw.git'
-MAGIC_COMMAND_GRAPH = 'GIT_DIR='+REPO+' git log --merges --graph --pretty=\'"'+INFO_SEPARATOR+'%H,%s"\' RELEASE_QUEUE '
+MAGIC_COMMAND_GRAPH = 'GIT_DIR='+REPO+' git log --merges --graph --pretty=\'"'+INFO_SEPARATOR+'%H,%s,parents:%P"\' RELEASE_QUEUE '
 
 #
 # load the graph for a given release queue
@@ -34,11 +35,11 @@ def load_graph(release_queue , maxNodes):
 
   for line in out.splitlines():
     if maxNodes != -1 and node_number > maxNodes:
-      identify_automated_merges(all_nodes)
-      return all_nodes
+      break
     #check if the line contains a node
     if INFO_SEPARATOR in line:
-      
+     
+      line = line.replace( '"' , '' ) 
       node_number += 1
       line_parts = line.split(INFO_SEPARATOR)
       lanes = line_parts[0].replace('"','').replace(' ','')
@@ -46,13 +47,19 @@ def load_graph(release_queue , maxNodes):
       
       node_info = line_parts[1]
       node_info_parts = node_info.split(",")
+
+      hash = node_info_parts[0]
+      description = node_info_parts[1]
+
+      parents_hashes = node_info_parts[2].replace( 'parents:' , '' ).split( ' ' )
       
       #hash, description
-      new_node = Node(node_info_parts[0],node_info_parts[1],lane)
-      all_nodes[node_info_parts[0]] = new_node
+      new_node = Node( hash , description , lane , parents_hashes , node_number )
+      all_nodes[ hash ] = new_node
 
       # for the first node I just add it without any conection
-      if node_number == 1:
+      if node_number == 0:
+        all_nodes[ 'first' ] = new_node
         set_previous_node_lane( prev_node_lane , lane , new_node )
         continue
 
@@ -71,16 +78,67 @@ def load_graph(release_queue , maxNodes):
 
       link_nodes( new_node , previous_node )
       set_previous_node_lane( prev_node_lane , lane , new_node )
-
-
-      all_nodes[node_info_parts[0]] = new_node
       previous_lane = lane
 
 
 
-  identify_automated_merges(all_nodes)
+# make the links based on the parents hashes
+  for node in all_nodes.values():
+
+    for parent_hash in node.parents_hashes:
+
+      parent_node = all_nodes.get( parent_hash )
+      if not parent_node:
+        continue
+
+      link_nodes( parent_node , node )
+
+  identify_automated_merges(all_nodes)  
+
+  for node in all_nodes.values():
+    node.printme() 
+
+
+
+  print '--------------------------------------'
+  print 'Command: ' 
+  print command
+  print '--------------------------------------'
 
   return all_nodes
+
+#
+# dumps the graph in json format
+#
+def print_json_file( release_queue , graph ):
+
+  all_nodes = []
+
+  for n in graph.values():
+    all_nodes.append( dictionarizeNode( n ) )
+
+  all_nodes.sort( key=lambda node: node['line_number'] )
+
+  out_json = open( release_queue + '-MergesGraph.json' , "w" )
+  json.dump( all_nodes , out_json,indent=4 )
+  out_json.close( )
+
+#
+# returns a dictionary version of a node, omiting some detals
+#
+def dictionarizeNode( node ):
+
+  dict_node = {}
+  dict_node['hash'] = node.hash
+  dict_node['lane'] = node.lane
+  dict_node['desc'] = node.desc
+  dict_node['is_from_merge'] = node.is_from_merge
+  dict_node['is_automated_merge'] = node.is_automated_merge
+  dict_node['is_pr'] = node.is_pr
+  dict_node['line_number'] = node.line_number
+
+  return dict_node
+  
 
 #
 # adds the node to the prev_node_lane structure in the given lane
@@ -98,8 +156,18 @@ def get_previous_node_lane( prev_node_lane , lane ):
 #
 # links a parent node with a son node
 # parent and son must be instances of Node
+# if the link already exists, it doesn't make it again
 #
-def link_nodes( parent, son):
+def link_nodes( parent, son ):
+
+  parent_has_already_son = len( [ c for c in parent.children.keys() if c == son.hash ] ) > 0
+
+  son_has_already_parent = len( [ p for p in son.parents.keys() if p == son.hash] ) > 0
+
+  if parent_has_already_son or son_has_already_parent:
+    print "not adding again :"
+    print "%s --> %s" % ( parent.hash , son.hash )
+
   parent.add_son(son)
   son.add_parent(parent)
 
@@ -135,8 +203,10 @@ def identify_responsible_automated_merge(commit):
   if len( children ) == 0:
     return commit
 
-  #for the moment a commit only has one kid! if that changes this needs to be changed
+  # I ask the child with the lowest lane
+  children.sort( key=lambda child: child.lane )
   child = children[0]
+
   if child.lane == 1:
     return child
   else:
@@ -154,21 +224,28 @@ def get_prs_from_merge_commit( graph ):
 def get_prs_brought_by_commit( graph , commit_hash ):
   return [ c for c in graph.values() if c.is_pr and c.is_from_merge and c.brought_by.hash == commit_hash ]
 
+def get_automated_merge_prs( graph ):
+  return [ c for c in graph.values() if c.is_automated_merge and c.is_pr ]
 
 class Node:
   
   # initializes the node with a hash, the lane (line in history), and a description
-  def __init__(self, hash, desc,lane):
+  def __init__( self , hash , desc , lane , parents_hashes , line_number ):
     self.hash = hash
     self.desc = desc
     self.lane = lane
+    self.parents_hashes = parents_hashes
     self.is_from_merge = lane > 1
-    self.is_automated_merge = 'Merge remote branch' in desc
+    self.is_automated_merge = 'Merge remote branch' in desc or 'Forward port ' in desc
     # which commit brought this one to the release queue
     self.brought_by = None 
     # which commits did this commit bring
     self.brought_commits = []
     self.is_pr = 'Merge pull request #' in desc
+    self.line_number = line_number
+
+    if 'Forward port ' in desc:
+      print 'AAAAAAAAAAAAAAAAAAAAAAAAAAA'
     
     if self.is_pr:
       self.pr_number = self.identify_pr_number()
@@ -201,6 +278,7 @@ class Node:
     print 'is from merge commit: %s' % self.is_from_merge
     print 'is pr: %s' % self.is_pr 
     print 'pr number: %s' % self.pr_number
+    print 'line number: %s' % self.line_number
     if self.is_automated_merge:
       print 'Is responsible for: '
       print ' - '.join([ c.hash for c in self.brought_commits ])
@@ -215,5 +293,22 @@ class Node:
 #
 # Testing
 #
-# graph = load_graph('CMSSW_7_2_X',1000)
+
+graph = load_graph('CMSSW_7_2_X',100)
+
+#mystery_hash = 'bfe78f2399b4cd3fbef06916781dc802779078f6'
+
+mystery_hash = '03974aa53ece5ecc4dee147671a825111220e094'
+
+graph[ mystery_hash ].printme()
+
+#print '-------------------------------'
+
+#children = [c for c in graph.values() if mystery_hash in c.parents.keys()]
+
+
+#for c in children:
+#  c.printme()
+
+print_json_file( 'CMSSW_7_2_X' , graph )
 
