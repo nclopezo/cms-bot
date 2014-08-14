@@ -156,6 +156,10 @@ if grep -i "had errors" $WORKSPACE/unitTests.log; then
     sed -i "s/UNIT_TESTS_STATUS-->//g" $WORKSPACE/summary.html
     ALL_OK=false
     UNIT_TESTS_OK=false
+
+    NUMBER_OF_ERRORS=`grep -c -i "had errors" $WORKSPACE/unitTests.log`
+    sed -i "s/PARAM_UTEST_ERRORS/$NUMBER_OF_ERRORS/g" $WORKSPACE/summary.html
+
 else  
     echo "no errors in the unit tests!!"
 fi
@@ -233,6 +237,10 @@ if [ "X$DO_SHORT_MATRIX" = Xtrue -a "X$BUILD_OK" = Xtrue ]; then
     sed -i "s/<!--MATRIX_TESTS_STATUS//g" $WORKSPACE/summary.html
     sed -i "s/MATRIX_TESTS_STATUS-->//g" $WORKSPACE/summary.html
     sed -i "s/See comparison with baseline/Not Run/g" $WORKSPACE/summary.html
+
+    NUMBER_OF_ERRORS=`grep -c -i "ERROR executing" $WORKSPACE/matrixTests.log`
+    sed -i "s/PARAM_MATRIX_ERRORS/$NUMBER_OF_ERRORS/g" $WORKSPACE/summary.html
+
     ALL_OK=false
     RELVALS_OK=false
   else  
