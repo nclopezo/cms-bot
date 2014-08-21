@@ -516,6 +516,29 @@ def find_one_hlt_test(release_name):
   else:
     return ''
 
+#
+# reads the results and generates a json with the available architectures per each IB
+#
+def generate_json_results_list( results ):
+
+  available_results_relvals = {}
+
+  for rq in results:
+
+    for comp in rq[ 'comparisons' ]:
+      
+      ib = comp[ 'compared_tags' ].split( '-->' )[ 1 ]
+      relvals_archs = ','.join( [res[ 'arch' ] for res in comp[ 'relvals' ] ] )
+
+      if relvals_archs != '':
+        available_results_relvals[ ib ] = relvals_archs
+      
+  file_name = 'RelvalsAvailableResults.json'
+  out_json = open( file_name , "w" )
+  json.dump( available_results_relvals , out_json,indent=4 )
+  out_json.close()
+
+
 # reads the results and generates a separated json for each release_queue
 def generate_separated_json_results(results):
 
@@ -676,9 +699,12 @@ addOn_tests_results = {}
 execute_magic_command_find_results(addOn_tests_results,'addOn')
 
 add_tests_to_results(results, unit_tests_results, relvals_results,addOn_tests_results, build_results)
+
 print_results(results)
 
 structure = identify_release_groups(results)
+
+generate_json_results_list( results )
 
 generate_separated_json_results(results)
 
