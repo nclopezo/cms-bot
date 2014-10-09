@@ -243,20 +243,19 @@ add_hlt_tests_link = function (title_cell,url){
 
 
 /**
- * writes a table with the comparison lates tag, and the information about the IB if it is an IB
+ * writes a table with the comparison latest tag, and the information about the IB if it is an IB
  */
-write_comp_IB_table =  function(comparison , tab_pane){
+write_comp_IB_table =  function( comparison , tab_pane ){
 
   var current_tag = comparison.compared_tags.split("-->")[1]
   var title_compared_tags = $("<h3><b></b></h3>").text(current_tag)
- 
+
   title_compared_tags.append($("<br>"))
   title_compared_tags.append($("<br>"))
    
   var title_table = $('<table class="table table-condensed"></table>')
   title_table.attr( 'id' , current_tag )
   var title_cell = $('<td></td>').append(title_compared_tags)
-  //here I check the result of the relvals
   
   add_static_analyzer_link(title_cell,comparison.static_checks)
   title_cell.append($('<br>'))
@@ -275,17 +274,17 @@ write_comp_IB_table =  function(comparison , tab_pane){
   
   if (architectures.length != 0 ){
     
-    var archs_title = $('<th></th>').text('Architectures')
+    var archs_title = $('<th>').text('Architectures')
     title_row.append(archs_title)
-    var builds_title = $('<th></th>').text('Builds')
+    var builds_title = $('<th>').text('Builds')
     title_row.append(builds_title)
-    var utests_title = $('<th></th>').text('Unit Tests')
+    var utests_title = $('<th>').text('Unit Tests')
     title_row.append(utests_title)
-    var rvs_title = $('<th></th>').text('RelVals')
+    var rvs_title = $('<th>').text('RelVals')
     title_row.append(rvs_title)
-    var addons_title = $('<th></th>').text('Other Tests')
+    var addons_title = $('<th>').text('Other Tests')
     title_row.append(addons_title)
-    var qa_title = $('<th></th>').text('Q/A')
+    var qa_title = $('<th>').text('Q/A')
     title_row.append(qa_title)
     
     for( var i = 0; i < architectures.length; i++){
@@ -418,17 +417,28 @@ writeComparisonLinkGithub = function(comparedTags, tab_pane){
 
 /*
 *
-* This function writes on the page the pull requests involved in the comparison between 2 tags
+* Writes on the page the pull requests involved in the comparison between 2 tags.
+* It also writes the information of the results of the IB
 */
-write_comparison = function(comparison,tab_pane){
+write_comparison = function( comparison, tab_pane ){
 
+  //if the tag is an IB, there are no differences in cmssw, and the ib was not built, I don't show it.
+  var current_tag = comparison.compared_tags.split("-->")[1]
+  var isIB = current_tag.indexOF( '-' ) >= 0
+  var noCMSSWdiffs = comparison.merged_prs.length == 0
+  var noIBBuilt = comparison.tests_archs.length == 0
+ 
+  if( isIB && noCMSSWdiffs && noIBBuilt ){
+    return
+  } 
+  
   var compTags = comparison.compared_tags
   write_comp_IB_table(comparison,tab_pane)
   var pull_requests = comparison.merged_prs
 
-  //if there were not merged prs in this comparison I alert it
 
-  if(comparison.merged_prs.length!=0){
+  //if there were not merged prs in this comparison I inform it, and don't show in the table.
+  if( comparison.merged_prs.length!=0 ){
     
     writeComparisonLinkGithub(compTags,tab_pane)
     var pr_list_group = $('<ul>')
@@ -463,13 +473,13 @@ write_comparison = function(comparison,tab_pane){
 /**
  * loads the comparisons and adds it to the tab pane for the corresponding release queue
  */
-paintComparisons = function(rqInfo){
+paintComparisons = function( rqInfo ){
 
   var tab_pane = $("#"+rqInfo.release_name)
   var comparisons = rqInfo.comparisons
 
   for(var j =comparisons.length-1; j >= 0; j--){
-    write_comparison(comparisons[j],tab_pane)
+    write_comparison( comparisons[j], tab_pane )
   
   }
 
