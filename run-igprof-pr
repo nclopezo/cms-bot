@@ -25,7 +25,7 @@ if [ "X$AUTO_POST_MESSAGE" = Xtrue ]; then
   sed -i "s/IGPROF;.*/IGPROF;RUNNING/g" $WORKSPACE/results/testsResults.txt
   rsync $WORKSPACE/results/testsResults.txt cmsbuild@vocms12.cern.ch:/data/sdt/SDT/jenkins-artifacts/pull-request-integration/PR-$PULL_REQUEST_NUMBER/$PULL_REQUEST_JOB_ID/testsResults.txt
 
-  $WORKSPACE/report-pull-request-results TESTS_RUNNING -t cmsbuild --pr $PULL_REQUEST_NUMBER -c $LAST_COMMIT --pr-job-id $PULL_REQUEST_JOB_ID --add-message "Running IGProf"
+  $WORKSPACE/report-pull-request-results TESTS_RUNNING --pr $PULL_REQUEST_NUMBER -c $LAST_COMMIT --pr-job-id $PULL_REQUEST_JOB_ID --add-message "Running IGProf"
 fi
 
 mkdir "$WORKSPACE/igprof-results-data"
