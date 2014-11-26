@@ -7,14 +7,16 @@ from github import Github, GithubException
 from sys import exit
 from os.path import expanduser
 from argparse import ArgumentParser
+from optparse import OptionParser
 
 if __name__ == "__main__":
   parser = ArgumentParser()
   parser.add_argument("source")
   parser.add_argument("dest")
-  args = parser.parse_args()
-
+  parser.add_argument( "-n", dest='dryRun', action="store_true" )
+  args = parser.parse_args() 
   print args
+  
 
   gh = Github(login_or_token=open(expanduser("~/.github-token")).read().strip())
 
@@ -37,9 +39,14 @@ if __name__ == "__main__":
 
   for issue in gh_repo.get_issues(milestone=milestone.pop(), state="open"):
     pr = gh_repo.get_pull(issue.number)
-    print issue.number, pr.head.user.login, pr.head.ref, destMilestone
+    print issue.number, pr.head.user.login, pr.head.ref, [ m.title for m in destMilestone ]
     newBody = issue.body + "\nAutomatically ported from " + args.source + " #%s" % issue.number
+
+    if args.dryRun:
+        print 'Not creating new PR on Github (dry-run)'
+        continue
     try:
-      gh_repo.create_pull(title = issue.title, body =newBody, base = args.dest, head = "%s:%s" % (pr.head.user.login, pr.head.ref))
+     print 'aa'    
+     #gh_repo.create_pull(title = issue.title, body =newBody, base = args.dest, head = "%s:%s" % (pr.head.user.login, pr.head.ref))
     except GithubException:
       continue
