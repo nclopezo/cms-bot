@@ -243,6 +243,7 @@ else
 
 fi
 
+
 #
 # Matrix tests
 #
@@ -359,6 +360,20 @@ else
   echo 'IGPROF;NOTRUN' >> $RESULTS_FILE
 
 fi
+
+#
+# test compilation with Clang
+#
+if [ "X$TEST_CLANG_COMPILATION" = Xtrue ]; then
+  if [ "X$AUTO_POST_MESSAGE" = Xtrue ]; then
+    $WORKSPACE/cms-bot/report-pull-request-results TESTS_RUNNING --pr $PULL_REQUEST_NUMBER -c $LAST_COMMIT --pr-job-id $PULL_REQUEST_JOB_ID --add-message "Testing Clang compilation"
+  fi
+
+  scram b vclean && scram build -j 8 CXX_FLAGS='-fsyntax-only' COMPILER=llvm 2>&1 | tee -a $WORKSPACE/buildClang.log
+  ## TODO how to interpret the results
+
+fi
+
 
 #
 # Duplicate checks
