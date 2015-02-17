@@ -15,6 +15,8 @@ if [[ "X$RELEASE_FORMAT" = X ]]; then
   RELEASE_FORMAT=$RELEASE_QUEUE
 fi
 
+echo "$CONFIG_MAP_URL | grep $RELEASE_QUEUE | grep -v DISABLED= | grep PR_TESTS= | grep SCRAM_ARCH=$ARCHITECTURE_FILTER;"
+
 for line in `curl $CONFIG_MAP_URL | grep $RELEASE_QUEUE | grep -v DISABLED= | grep PR_TESTS= | grep SCRAM_ARCH=$ARCHITECTURE_FILTER;`; do
   (
     eval $line
