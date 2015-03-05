@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+from optparse import OptionParser
+from os.path import exists,expanduser
+from commands import getstatusoutput
+from github import Github
+from sys import exit
+import re
+
+# -------------------------------------------------------------------------------
+# Global Variables
+# --------------------------------------------------------------------------------
+
+GH_CMSSW_ORGANIZATION = 'cms-sw'
+GH_CMSSW_REPO = 'cmssw'
+REL_NAME_REGEXP="(CMSSW_[0-9]+_[0-9]+)_[0-9]+(_SLHC[0-9]*|)(_pre[0-9]+|_[a-zA-Z]*patch[0-9]+|)(_[^_]*|)"
+CONFIG_MAP_FILE = 'config.map'
+ANNOUNCEMENT_TEMPLATE = 'Hi all,\n\n' \
+                        'The {rel_type} {is_patch} release {rel_name} is now available '\
+                        'for the following architectures:\n'\
+                        '{production_arch} (production)\n'\
+                        '{rest_of_archs}\n'\
+                        'The release notes of what changed with respect to {prev_release} can be found at:\n'\
+                        'https://github.com/cms-sw/cmssw/releases/{rel_name}\n\n'\
+                        '{description}\n\n'\
+                        'Cheers,\n'\
+                        'cms-bot'
+
+# -------------------------------------------------------------------------------
+# Functions
+# --------------------------------------------------------------------------------
+
+#
+# posts a message to the issue in github
+# if dry-run is selected it doesn't post the message and just prints it
+#
+def post_message( issue, msg ):
+  if opts.dryRun:
+    print 'Not posting message (dry-run):\n %s' % msg
+  else:
+    print 'Posting message:\n %s' % msg
+    issue.create_comment( msg )
+
+#
+# Reads config.map and returns a list of the architectures for which a release needs to be built.
+# If the list is empty it means that it didn't find any architecture for that release queue, or
+# that the IBs are disabled.
+#
+def get_config_map_properties():
+  specs = []
+  f = open( CONFIG_MAP_FILE , 'r' )
+  lines = [l.strip(" \n\t;") for l in f.read().split("\n") if l.strip(" \n\t;")]
+  for line in lines:
+    entry = dict(x.split("=",1) for x in line.split(";") if x)
+    specs.append(entry)
+  
+  return specs
+
+#--------------------------------------------------------------------------------
+# Start of Execution
+#--------------------------------------------------------------------------------
+
+if __name__ == "__main__":
+  parser = OptionParser(usage="%(progname) <release_name> <previous_release> <issue_number>")
+  parser.add_option("-n", "--dry-run", help="Do not post in github", 
+                    dest="dryRun", default=False, action="store_true")
+  opts, args = parser.parse_args()
+
+  if len(args) != 3:
+    parser.error("Wrong number or arguments")
+  release_name = args[0]
+  previous_release_name = args[1]
+  issue_number = int( args[2] )
+
+  #---------------------------------
+  # pyGithub intialization
+  #---------------------------------
+
+  GH = Github( login_or_token=open( expanduser( "~/.github-token" ) ).read( ).strip( ) )
+  issue = GH.get_organization( GH_CMSSW_ORGANIZATION ).get_repo( GH_CMSSW_REPO ).get_issue( issue_number )
+
+  print release_name
+  rel_name_match = re.match( REL_NAME_REGEXP, release_name )
+
+  if not rel_name_match:
+    print 'Release name not correctly formed'
+    exit( 1 )
+
+  release_queue = "".join([x for x in rel_name_match.group(1,4)] + ["_X"] + [x.strip("0123456789") for x in rel_name_match.group(2)])
+  print release_queue
+
+  specs = get_config_map_properties()
+  architectures = [x["SCRAM_ARCH"] for x in specs
+                                     if x["RELEASE_QUEUE"] == release_queue and not "DISABLED" in x]
+  
+  print architectures
+   # Check if we have at least one architecture to build and complain if not.
+  if not architectures:
+    print 'no archs found for the requested release'
+    exit( 1 )
+
+  production_architecture = [x["SCRAM_ARCH"] for x in specs
+                                               if x["RELEASE_QUEUE"] == release_queue and not "DISABLED" in x and "PROD_ARCH" in x][0]
+  
+  print 'Production architecture: ', production_architecture
+  
+  is_development = 'pre' in release_name
+  type_str = 'development' if is_development else 'production'
+  print 'Is development: ', is_development
+  is_patch = 'patch' in release_name
+  patch_str = 'patch' if is_patch else ''
+  print 'Is patch: ', is_patch
+  # The description of the issue should explain the reason for building the release
+  desc = issue.body
+  print 'Description: \n', desc
+  
+  architectures.remove( production_architecture )
+  announcement = ANNOUNCEMENT_TEMPLATE.format( rel_type=type_str,
+                                is_patch=patch_str,
+                                rel_name=release_name,
+                                production_arch=production_architecture,
+                                rest_of_archs='\n'.join(architectures),
+                                prev_release=previous_release_name,
+                                description=desc )
+
+  print announcement
