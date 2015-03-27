@@ -1,0 +1,37 @@
+#!/bin/sh -ex
+
+# The Following parameters are set up by jenkins
+# - ES_HOSTNAME
+# - ES_RELVALS_INDEX
+# - ES_SCRAM_INDEX
+
+hostname
+klist
+aklog
+
+rm -rf cms-sw.github.io
+
+git clone git@github.com:cms-sw/cms-sw.github.io
+
+cd cms-sw.github.io
+
+# Make sure we push with our correct name and address 
+# in the case our user does not have an home directory,
+# e.g. under mesos.
+if [ X$HOME = X ]; then  
+  git config user.email 'cmsbuild@cern.ch'
+  git config user.name "CMS Build"
+fi
+
+git pull --rebase
+./process-logs --logdir /afs/cern.ch/cms/sw/ReleaseCandidates/ --es_hostname $ES_HOSTNAME --es_rv_index $ES_RELVALS_INDEX --es_scram_index $ES_SCRAM_INDEX
+tail Makefile
+timeout 300 make -j 20 -k || true
+./list-available-results
+git add data
+if git commit -a -m "Update data - `date +%Y-%m-%d-%H:%M`"; then
+  git pull --rebase
+  git gc --prune=now
+  du -sh .git
+  git push origin master
+fi
