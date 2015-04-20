@@ -143,7 +143,7 @@ if [ "X$RUN_DEFAULT_COMP" = Xtrue ]; then
 
     # create a mini script for running this comparisons in parallel
     echo '#!/bin/sh -ex' >> $WORKSPACE/results/default-comparison/command-$WF_NUMBER
-    echo 'compare_using_files.py '$WORKSPACE'/results/files/'$WF_DIR'/'$RELEASE_FORMAT'-'$WF_FILE' '$WORKSPACE'/results/files/'$WF_DIR'/'$PULL_REQUEST_NUMBER'-'$WF_FILE' -o '$OUTPUT_DIR' --metas " '$RELEASE_FORMAT' @@@ '$RELEASE_FORMAT' + '$PULL_REQUEST_NUMBER' " --use_black_file -C -R -p --no_successes -s b2b --standalone 2>&1 | tee -a '$OUTPUT_DIR'RelMonComp-'$WF_NUMBER'.log' >> $WORKSPACE/results/default-comparison/command-$WF_NUMBER
+    echo 'compare_using_files.py '$WORKSPACE'/results/files/'$WF_DIR'/'$RELEASE_FORMAT'-'$WF_FILE' '$WORKSPACE'/results/files/'$WF_DIR'/'$PULL_REQUEST_NUMBER'-'$WF_FILE' -o '$OUTPUT_DIR' --metas " '$RELEASE_FORMAT' @@@ '$RELEASE_FORMAT' + '$PULL_REQUEST_NUMBER' " --use_black_file -C -R -p --no_successes -s b2b --standalone -t 5e-03 2>&1 | tee -a '$OUTPUT_DIR'RelMonComp-'$WF_NUMBER'.log' >> $WORKSPACE/results/default-comparison/command-$WF_NUMBER
 
     echo "pushd $OUTPUT_DIR" >> $WORKSPACE/results/default-comparison/command-$WF_NUMBER
     echo "cp RelMonSummary.html index.html" >> $WORKSPACE/results/default-comparison/command-$WF_NUMBER
@@ -252,8 +252,8 @@ if [ "X$RUN_ALT_COMP" = Xtrue ]; then
 
 fi
 
-sed -i "s/COMPARISON;RUNNING/COMPARISON;$BUILD_NUMBER/g" $WORKSPACE/results/testsResults.txt
-rsync $WORKSPACE/results/testsResults.txt $ARTIFACTS_MACHINE:/data/sdt/SDT/jenkins-artifacts/pull-request-integration/PR-$PULL_REQUEST_NUMBER/$PULL_REQUEST_JOB_ID/testsResults.txt
+#sed -i "s/COMPARISON;RUNNING/COMPARISON;$BUILD_NUMBER/g" $WORKSPACE/results/testsResults.txt
+#rsync $WORKSPACE/results/testsResults.txt $ARTIFACTS_MACHINE:/data/sdt/SDT/jenkins-artifacts/pull-request-integration/PR-$PULL_REQUEST_NUMBER/$PULL_REQUEST_JOB_ID/testsResults.txt
 
 
 
